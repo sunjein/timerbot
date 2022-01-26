@@ -1,0 +1,4 @@
+{
+    "token": "YOUR_TOKEN",
+    "mongodb": "mongodb+srv://username:password..."
+}
