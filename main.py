@@ -50,10 +50,15 @@ async def set_command(
 async def loop():
     await bot.wait_until_ready()
     for item in data:
+
         if item['datetime'] <= time_to_int(datetime.now()):
+            diff = time_to_int(datetime.now())-item['datetime']
             guild = await bot.fetch_guild(item['guild_id'])
             channel = await bot.fetch_channel(item['channel_id'])
-            await channel.send(f'<@{item["author_id"]}> {item["message"]}')
+            if 10 <= diff:
+                await channel.send(f'<@{item["author_id"]}> {item["message"]}(何らかの理由でタイマー通知に遅れが生じました。大変申し訳ございません。)')
+            else:
+                await channel.send(f'<@{item["author_id"]}> {item["message"]}')
             data.remove(item)
             result = await timers_collection.delete_one({
                 'guild_id': item['guild_id'],
