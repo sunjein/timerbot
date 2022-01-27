@@ -18,6 +18,41 @@ def time_to_int(dt):
     diff = dt - basetime
     return int(diff.total_seconds())
 
+def int_to_time(number):
+    basetime = datetime(2000,1,1,hour=0,second=0,microsecond=0,tzinfo=None)
+    time = basetime + timedelta(seconds=number)
+    return time
+
+@bot.slash_command(guild_ids=[929200570093424660], name="list")
+async def list_command(ctx):
+    if not data_ready:
+        return await ctx.respond(f'申し訳ございません。再起動の処理中です。しばらくお待ちしてからもう一度試してください。', ephemeral=True)
+    
+    data = await timers_collection.find(
+        {
+            "guild_id": ctx.guild.id,
+            "author_id": ctx.author.id,
+        }, {
+            "_id": False
+        }
+    ).to_list(length=None)
+
+    text = ""
+    for item in data:
+        text += f"{int_to_time(item['datetime'])}: {item['message']}"+"\n"
+
+    if not data:
+        text = "設定したタイマーはありません。"
+
+    embed = discord.Embed(
+        title="あなたが設定したタイマー",
+        description=text,
+        color=discord.Colour.blue(),
+    )
+    await ctx.respond(embed=embed)
+
+
+
 @bot.slash_command(guild_ids=[929200570093424660], name="set")
 async def set_command(
     ctx,
