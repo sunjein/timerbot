@@ -37,9 +37,11 @@ async def list_command(ctx):
         }
     ).to_list(length=None)
 
+    data = sorted(data, key=lambda x:x['datetime'])
+
     text = ""
-    for item in data:
-        text += f"{int_to_time(item['datetime'])}: {item['message']}"+"\n"
+    for i, item in enumerate(data):
+        text += f"{i}) {int_to_time(item['datetime'])}: {item['message']}"+"\n"
 
     if not data:
         text = "設定したタイマーはありません。"
@@ -50,6 +52,35 @@ async def list_command(ctx):
         color=discord.Colour.blue(),
     )
     await ctx.respond(embed=embed)
+
+
+@bot.slash_command(guild_ids=[929200570093424660], name="delete")
+async def delete_command(
+    ctx,
+    sec: Option(int, '通知する秒数'),
+    message: Option(str, '通知するときのコマンドを入力', required=False, default='メッセージなし'),
+):
+    if not data_ready:
+        return await ctx.respond(f'申し訳ございません。再起動の処理中です。しばらくお待ちしてからもう一度試してください。', ephemeral=True)
+
+    await ctx.respond(f'{sec}秒後に通知します。', ephemeral=False)
+    time = datetime.now() + timedelta(seconds=sec)
+    time = time_to_int(time)
+    data.append({
+        'guild_id': ctx.guild.id,
+        'channel_id': ctx.channel.id,
+        'author_id': ctx.author.id,
+        'datetime': time,
+        'message': message,
+    })
+
+    await timers_collection.insert_one({
+        'guild_id': ctx.guild.id,
+        'channel_id': ctx.channel.id,
+        'author_id': ctx.author.id,
+        'datetime': time,
+        'message': message,
+    })
 
 
 
