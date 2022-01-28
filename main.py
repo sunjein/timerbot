@@ -18,6 +18,68 @@ def time_to_int(dt):
     diff = dt - basetime
     return int(diff.total_seconds())
 
+def int_to_time(number):
+    basetime = datetime(2000,1,1,hour=0,second=0,microsecond=0,tzinfo=None)
+    time = basetime + timedelta(seconds=number)
+    return time
+
+
+@bot.slash_command(guild_ids=[929200570093424660], name="list")
+async def list_command(ctx):
+    if not data_ready:
+        return await ctx.respond(f'申し訳ございません。再起動の処理中です。しばらくお待ちしてからもう一度試してください。', ephemeral=True)
+    
+    list_data = await timers_collection.find(
+        {
+            "guild_id": ctx.guild.id,
+            "author_id": ctx.author.id,
+        }, {
+            "_id": False
+        }
+    ).to_list(length=None)
+
+    sorted_list_data = sorted(data, key=lambda x:x['datetime'])
+
+    text = ""
+    for i, item in enumerate(sorted_list_data):
+        text += f"{i}) {int_to_time(item['datetime'])}: {item['message']}"+"\n"
+
+    if not list_data:
+        text = "設定したタイマーはありません。"
+
+    embed = discord.Embed(
+        title="あなたが設定したタイマー",
+        description=text,
+        color=discord.Colour.blue(),
+    )
+    await ctx.respond(embed=embed)
+
+@bot.slash_command(guild_ids=[929200570093424660], name="delete")
+async def delete_command(
+    ctx,
+    select: Option(int, '削除するタイマーの番号'),
+):
+    if not data_ready:
+        return await ctx.respond(f'申し訳ございません。再起動の処理中です。しばらくお待ちしてからもう一度試してください。', ephemeral=True)
+
+    list_data = await timers_collection.find(
+        {
+            "guild_id": ctx.guild.id,
+            "author_id": ctx.author.id,
+        }, {
+            "_id": False
+        }
+    ).to_list(length=None)
+
+    sorted_list_data = sorted(data, key=lambda x:x['datetime'])
+
+    if not (0 <= select < len(sorted_list_data)):
+        return await ctx.respond("不正な値です。", ephemeral=True)
+
+    await timers_collection.delete_one(sorted_list_data[select])
+    data.remove(sorted_list_data[select])
+    return await ctx.respond("削除が完了しました。", ephemeral=False)
+
 @bot.slash_command(guild_ids=[929200570093424660], name="set")
 async def set_command(
     ctx,
@@ -73,7 +135,12 @@ async def loop():
 @bot.event
 async def on_ready():
     global data_ready, data
-    data = await timers_collection.find().to_list(length=None)
+    data = await timers_collection.find(
+        {},
+        {
+            "_id": False
+        }
+    ).to_list(length=None)
     data_ready = True
 
 with open("./config.json", 'r', encoding='utf-8') as f:
