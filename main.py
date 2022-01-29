@@ -89,9 +89,25 @@ async def set_command(
     if not data_ready:
         return await ctx.respond(f'申し訳ございません。再起動の処理中です。しばらくお待ちしてからもう一度試してください。', ephemeral=True)
 
-    await ctx.respond(f'{sec}秒後に通知します。', ephemeral=False)
     time = datetime.now() + timedelta(seconds=sec)
     time = time_to_int(time)
+    
+    list_data = await timers_collection.find(
+        {
+            "guild_id": ctx.guild.id,
+        }, {
+            "_id": False
+        }
+    ).to_list(length=None)
+    cnt = 0
+    for timer in list_data:
+        if -20 < (timer['datetime'] - time) < 20:
+            cnt+=1
+    if 5 < cnt:
+        return await ctx.respond(f'その時間のタイマー登録が多すぎです。', ephemeral=True)
+
+
+    await ctx.respond(f'{sec}秒後に通知します。', ephemeral=False)
     data.append({
         'guild_id': ctx.guild.id,
         'channel_id': ctx.channel.id,
